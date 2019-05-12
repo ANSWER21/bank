@@ -1,0 +1,605 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+        <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+                "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="ExecutiveMapper">
+
+    <select id="queryListByPage" parameterType="map" resultType="com.mooke.entity.Tools">
+        SELECT
+            c_id as cid,
+            c_name as cname,
+            c_sex as  csex,
+            c_age as  cage,
+            c_IDcard as  cIDcard,
+            c_phone as  cphone,
+            c_occupation as  coccupation,
+            c_risk as  crisk,
+            c_IDnumber as cIDnumber ,
+            m_id as  mid
+        FROM client
+        limit #{curpage},#{perpage}
+	</select>
+    <select id="findByName" parameterType="map" resultType="com.mooke.entity.Tools">
+        SELECT
+            c_id as cid,
+            c_name as cname,
+            c_sex as  csex,
+            c_age as  cage,
+            c_IDcard as  cIDcard,
+            c_phone as  cphone,
+            c_occupation as  coccupation,
+            c_risk as  crisk,
+            c_IDnumber as cIDnumber ,
+            m_id as  mid
+        FROM client
+        where
+        c_id = #{findByName}
+	</select>
+
+    <select id="queryTotalCount" parameterType="map" resultType="Integer">
+   select count(*) as totalCount
+		FROM client
+	</select>
+
+    <select id="queryCapitalListByPage" parameterType="map" resultType="com.mooke.entity.Tools">
+         SELECT
+            d.c_id as cid,
+            c.c_name as cname,
+            SUM(d_current) as  dcurrent,
+            SUM(d_terminal) as  dterminal,
+            SUM(d_financing) as  dfinancing,
+            SUM(d_fund) as  dfund,
+            SUM(d_insurance) as  dinsurance,
+            SUM(d_current+d_terminal+d_financing+d_fund+d_insurance) as dtotal,
+                (CASE
+            WHEN SUM(d_current+d_terminal+d_financing+d_fund+d_insurance) >= 1000000 THEN '钻石客户'
+            WHEN SUM(d_current+d_terminal+d_financing+d_fund+d_insurance) &lt; 1000000 AND
+            SUM(d_current+d_terminal+d_financing+d_fund+d_insurance) >= 300000 THEN '白金客户'
+            WHEN SUM(d_current+d_terminal+d_financing+d_fund+d_insurance) &lt; 300000 THEN '普通客户'
+            END) as level
+        FROM datelist d
+        LEFT JOIN client c
+        ON d.c_id=c.c_id
+        where d.c_id= #{cid}
+        GROUP BY
+        d.c_id
+	</select>
+
+    <select id="queryDetailListByPage" parameterType="map" resultType="com.mooke.entity.Tools">
+         SELECT
+            d_id as did,
+            d_time as dtime,
+            pd.p_name as dname,
+            p_type as ptype,
+            datediff(d_endtime,d_time) as ddeadline,
+            d_endtime as dendtime,
+            d_current+d_terminal+d_financing+d_fund+d_insurance+d_insurance as dtotal
+            FROM datelist d
+			LEFT JOIN `product-datelist` pd
+			on d.pd_id =pd.id
+			LEFT JOIN product p
+			ON p.p_id=pd.p_id
+			where d.c_id =#{cid}
+	</select>
+    <select id="queryDetailListByType" parameterType="map" resultType="com.mooke.entity.Tools">
+       SELECT
+            d_id as did,
+            d_time as dtime,
+            pd.p_name as dname,
+            p_type as ptype,
+            datediff(d_endtime,d_time) as ddeadline,
+            d_endtime as dendtime,
+            d_current+d_terminal+d_financing+d_fund+d_insurance+d_insurance as dtotal
+            FROM datelist d
+			LEFT JOIN `product-datelist` pd
+			on d.pd_id =pd.id
+			LEFT JOIN product p
+			ON p.p_id=pd.p_id
+        where d.c_id =#{cid}
+        and pd.p_id =#{pid}
+	</select>
+
+    <select id="queryDetailListByDid" parameterType="map" resultType="com.mooke.entity.Tools">
+        SELECT
+            d_id as did,
+            d_time as dtime,
+            pd.p_name as dname,
+            p_type as ptype,
+            datediff(d_endtime,d_time) as ddeadline,
+            d_endtime as dendtime,
+            d_current+d_terminal+d_financing+d_fund+d_insurance+d_insurance as dtotal
+            FROM datelist d
+			LEFT JOIN `product-datelist` pd
+			on d.pd_id =pd.id
+			LEFT JOIN product p
+			ON p.p_id=pd.p_id
+        where d.d_id =#{did}
+	</select>
+    <update id="editDetailed" parameterType="map" >
+	update datelist
+	      set
+                pd_id=#{dpdid},
+                d_endtime=#{dendtime},
+                d_time=#{dtime},
+                d_current=#{dcurrent},
+                d_terminal=#{dterminal},
+                d_financing=#{dfinancing},
+                d_fund=#{dfund},
+                d_insurance=#{dinsurance}
+	where
+	   d_id = #{did}
+	</update>
+    <delete id="removeDetail" parameterType="map" >
+        delete from datelist
+        where
+            d_id = #{did}
+    </delete>
+    <select id="queryManagerList" parameterType="map" resultType="com.mooke.entity.Tools">
+        SELECT
+            m_id as mid,
+            m_name as mname,
+            m_age as mage,
+            m_phone as mphone,
+            m_email as memail
+        FROM manager
+	</select>
+    <select id="queryProductList" parameterType="map" resultType="com.mooke.entity.Tools">
+         SELECT
+            pd.id as id,
+            pd.p_id as pid,
+            p_name as pname,
+            p_type as ptype,
+            p_time as ptime,
+            p_risk as prisk,
+            p_money as pmoney
+            FROM  `product-datelist` pd
+        LEFT JOIN product p
+        ON pd.p_id=p.p_id
+	</select>
+
+    <select id="checkcId" parameterType="map" resultType="com.mooke.entity.Tools">
+         SELECT
+           *
+        FROM client
+        where c_id=#{cid}
+	</select>
+    <insert id="addUsered" parameterType="map">
+        insert into client
+	(
+	    c_id,
+		c_name,
+		c_sex,
+		c_age,
+		c_IDcard,
+  		c_phone,
+		c_risk,
+		c_IDnumber,
+		m_id,
+		c_occupation
+	)values(
+	    #{cid},
+		#{cname},
+		#{csex},
+        #{cage},
+		#{cIDcard},
+		#{cphone},
+		#{crisk},
+		#{cIDnumber},
+		#{mid},
+		#{coccupation}
+	)
+    </insert>
+    <update id="updateUsered" parameterType="map" >
+	update client
+	      set   c_name=#{cname},
+                c_sex=#{csex},
+                c_age=#{cage},
+                c_IDcard=#{cIDcard},
+                c_phone=#{cphone},
+                c_risk=#{crisk},
+                c_IDnumber=#{cIDnumber},
+                m_id=#{mid},
+                c_occupation=#{coccupation}
+	where
+	   c_id = #{cid}
+	</update>
+    <delete id="deleteUsered" parameterType="map" >
+        DELETE client,datelist
+        from client
+        LEFT JOIN datelist
+        ON client.c_id=datelist.c_id
+        WHERE client.c_id = #{cid}
+    </delete>
+
+    <insert id="addDetailed" parameterType="map">
+        insert into datelist
+	(
+	    m_id,
+		c_id,
+		pd_id,
+		d_endtime,
+		d_time,
+  		d_current,
+		d_terminal,
+		d_financing,
+		d_fund,
+		d_insurance
+	)values(
+	    #{mid},
+		#{cid},
+        #{dpdid},
+		#{dendtime},
+		now(),
+		#{dcurrent},
+		#{dterminal},
+		#{dfinancing},
+		#{dfund},
+		#{dinsurance}
+	)
+    </insert>
+    <select id="showProduct" parameterType="map" resultType="com.mooke.entity.Tools">
+        SELECT
+            pd.id as id,
+            p.p_id as pid,
+            p_type as ptype,
+            p_name as pname,
+            p_time as ptime,
+            p_risk as prisk,
+            p_money as pmoney
+        FROM
+        product p
+        LEFT JOIN `product-datelist` pd
+        on p.p_id =pd.p_id
+	</select>
+    <select id="showProductByPidPrisk" parameterType="map" resultType="com.mooke.entity.Tools">
+        SELECT
+            pd.id as id,
+            p.p_id as pid,
+            p_type as ptype,
+            p_name as pname,
+            p_time as ptime,
+            p_risk as prisk,
+            p_money as pmoney
+        FROM
+        product p
+        LEFT JOIN `product-datelist` pd
+        on p.p_id =pd.p_id
+        where pd.p_id =#{pid}
+        and pd.p_risk=#{prisk}
+	</select>
+    <select id="showProductByPrisk" parameterType="map" resultType="com.mooke.entity.Tools">
+        SELECT
+            pd.id as id,
+            p.p_id as pid,
+            p_type as ptype,
+            p_name as pname,
+            p_time as ptime,
+            p_risk as prisk,
+            p_money as pmoney
+        FROM
+        product p
+        LEFT JOIN `product-datelist` pd
+        on p.p_id =pd.p_id
+        where pd.p_risk=#{prisk}
+	</select>
+    <select id="showProductByPid" parameterType="map" resultType="com.mooke.entity.Tools">
+        SELECT
+            pd.id as id,
+            p.p_id as pid,
+            p_type as ptype,
+            p_name as pname,
+            p_time as ptime,
+            p_risk as prisk,
+            p_money as pmoney
+        FROM
+        product p
+        LEFT JOIN `product-datelist` pd
+        on p.p_id =pd.p_id
+        where pd.p_id =#{pid}
+	</select>
+
+    <insert id="addProducted" parameterType="map">
+        insert into `product-datelist`
+	(
+		p_id,
+		p_name,
+		p_time,
+		p_risk,
+  		p_money
+	)values(
+	    #{pid},
+		#{pname},
+		#{ptime},
+        #{prisk},
+		#{pmoney}
+	)
+    </insert>
+    <select id="editProduct" parameterType="map" resultType="com.mooke.entity.Tools">
+        SELECT
+            pd.id as id,
+            p.p_id as pid,
+            p_type as ptype,
+            p_name as pname,
+            p_time as ptime,
+            p_risk as prisk,
+            p_money as pmoney
+        FROM
+        product p
+        LEFT JOIN `product-datelist` pd
+        on p.p_id =pd.p_id
+        where pd.id =#{id}
+	</select>
+
+    <update id="updateProducted" parameterType="map" >
+	update `product-datelist`
+	      set   p_id=#{pid},
+                p_name=#{pname},
+                p_time=#{ptime},
+                p_risk=#{prisk},
+                p_money=#{pmoney}
+	where
+	   id = #{id}
+	</update>
+
+    <delete id="deleteProduct" parameterType="map" >
+        delete from `product-datelist`
+        where
+            id = #{id}
+    </delete>
+
+    <select id="showNewUser" parameterType="map" resultType="com.mooke.entity.Tools">
+        SELECT
+            n_id as nid,
+            n_name as nname,
+            n_phone as nphone,
+            n_content as ncontent,
+            n_success as nsuccess
+        from  new
+        limit #{curpage},#{perpage}
+	</select>
+    <select id="queryNewUserTotalCount" parameterType="map" resultType="Integer">
+        select count(*) as totalCount
+		FROM new
+	</select>
+    <insert id="addNewUsered" parameterType="map">
+        insert into new
+	(
+		n_name,
+		n_phone,
+		n_content,
+  		n_success
+	)values(
+		#{nname},
+		#{nphone},
+        #{ncontent},
+		#{nsuccess}
+	)
+    </insert>
+
+    <select id="follow" parameterType="map" resultType="com.mooke.entity.Tools">
+        SELECT
+            id as id,
+            n_id as nid,
+            f_time as ftime,
+            f_way as fway,
+            m_id as mid,
+            f_result as fresult
+        from  follow
+        where
+        n_id = #{nid}
+	</select>
+    <insert id="addNewFollowed" parameterType="map">
+        insert into follow
+	(
+		n_id,
+		f_time,
+		f_way,
+  		f_result
+	)values(
+		#{nid},
+		#{ftime},
+        #{fway},
+		#{fresult}
+	)
+    </insert>
+
+    <delete id="deletefollow" parameterType="map" >
+        delete from follow
+        where
+            id = #{id}
+    </delete>
+
+    <select id="showHaveUser" parameterType="map" resultType="com.mooke.entity.Tools">
+        SELECT
+        c.c_id as cid,
+        c.c_name as cname,
+        c.c_phone as cphone,
+        c.c_name as cname,
+        c.c_risk as crisk,
+        SUM(d_current+d_terminal+d_financing+d_fund+d_insurance) as dtotal,
+        (CASE
+        WHEN SUM(d_current+d_terminal+d_financing+d_fund+d_insurance) >= 1000000 THEN '钻石客户'
+        WHEN SUM(d_current+d_terminal+d_financing+d_fund+d_insurance) &lt; 1000000 AND
+        SUM(d_current+d_terminal+d_financing+d_fund+d_insurance) >= 300000 THEN '白金客户'
+        WHEN SUM(d_current+d_terminal+d_financing+d_fund+d_insurance) &lt; 300000 THEN '普通客户'
+        END) as level
+        FROM
+        client c
+        LEFT JOIN datelist d
+        ON c.c_id=d.c_id
+        GROUP BY
+        c.c_id
+        having
+        SUM(d_current+d_terminal+d_financing+d_fund+d_insurance) >100
+	</select>
+    <select id="showLossUser" parameterType="map" resultType="com.mooke.entity.Tools">
+        SELECT
+            d.c_id as cid,
+            c_name as cname,
+            max(d.d_time) as ltime,
+            SUM(d_current+d_terminal+d_financing+d_fund+d_insurance) as lmoney,
+            (CASE
+        WHEN datediff(now(),max(d.d_time)) >=183  THEN '已流失'
+        else '即将流失'
+        END) as lentity,
+        l_cause as lcause
+        FROM datelist d
+        LEFT JOIN client c
+        ON c.c_id=d.c_id
+        GROUP BY
+        d.c_id
+        having
+        SUM(d_current+d_terminal+d_financing+d_fund+d_insurance)  &lt; 100
+        limit #{curpage},#{perpage}
+	</select>
+
+    <select id="queryLossTotalCount" parameterType="map" resultType="Integer">
+        select count(*) as totalCount
+        FROM datelist d
+        LEFT JOIN client c
+        ON c.c_id=d.c_id
+        GROUP BY
+        d.c_id
+        having
+        SUM(d_current+d_terminal+d_financing+d_fund+d_insurance)  &lt; 100
+	</select>
+    <update id="editLossed" parameterType="map" >
+	update client
+	      set
+                l_cause=#{lcause}
+	where
+	   c_id = #{cid}
+	</update>
+    <select id="showManager" parameterType="map"  resultType="com.mooke.entity.Tools">
+        select
+        id as id,
+        m_id as mid,
+        m_name as mname,
+        m_age as mage,
+        m_phone as mphone,
+        m_email as memail
+		FROM manager
+		limit #{curpage},#{perpage}
+	</select>
+    <select id="queryManagerTotalCount" parameterType="map" resultType="Integer">
+        select count(*) as totalCount
+		FROM manager
+	</select>
+    <select id="checkmId" parameterType="map" resultType="com.mooke.entity.Tools">
+         SELECT
+           *
+        FROM manager
+        where m_id=#{mid}
+	</select>
+    <insert id="addNewManagered" parameterType="map">
+        insert into manager
+	(
+		m_id,
+		m_name,
+		m_age,
+		m_phone,
+  		m_email
+	)values(
+		#{mid},
+		#{mname},
+        #{mage},
+        #{mphone},
+		#{memail}
+	)
+    </insert>
+    <update id="editManagered" parameterType="map" >
+	update manager
+	      set
+                m_name=#{mname},
+                m_age=#{mage},
+                m_phone=#{mphone},
+                m_email=#{memail}
+	where
+	   m_id = #{mid}
+	</update>
+    <delete id="deleteManager" parameterType="map" >
+        delete from manager
+        where
+            m_id = #{mid}
+    </delete>
+    <select id="showPerformance" parameterType="map" resultType="com.mooke.entity.Tools">
+        SELECT
+        m.m_name as mname,
+        SUM(d_current+d_terminal+d_financing+d_fund+d_insurance) as dtotal
+        FROM
+        manager m
+        LEFT JOIN client c
+        ON m.m_id=c.m_id
+				LEFT JOIN datelist d
+        ON c.c_id=d.c_id
+		WHERE
+		m.m_id != '10001'
+		AND
+        YEAR(d.d_time) = YEAR(NOW())
+        GROUP BY
+        m.m_id
+	</select>
+    <select id="showSales" parameterType="map" resultType="com.mooke.entity.Tools">
+       SELECT
+            pd.id as id,
+            p.p_id as pid,
+            p_type as ptype,
+			ifnull(SUM(d_current+d_terminal+d_financing+d_fund+d_insurance),0)as dtotal
+        FROM
+        product p
+        LEFT JOIN `product-datelist` pd
+        on p.p_id =pd.p_id
+				LEFT JOIN datelist d
+        on d.pd_id =pd.id
+        GROUP BY
+        pd.p_id
+	</select>
+    <select id="showDistribution" parameterType="map" resultType="com.mooke.entity.Tools">
+        SELECT
+        COUNT(*) as id,
+        Userlevel as level
+        FROM
+        (
+            SELECT
+                (CASE
+                WHEN SUM(d_current+d_terminal+d_financing+d_fund+d_insurance) >= 1000000 THEN '钻石客户'
+                WHEN SUM(d_current+d_terminal+d_financing+d_fund+d_insurance) &lt;1000000 AND
+                SUM(d_current+d_terminal+d_financing+d_fund+d_insurance) >= 300000 THEN '白金客户'
+                WHEN SUM(d_current+d_terminal+d_financing+d_fund+d_insurance) &lt;300000 THEN '普通客户'
+                END) as Userlevel
+            FROM datelist d
+            LEFT JOIN client c
+            ON d.c_id=c.c_id
+            GROUP BY
+            d.c_id
+        )
+        as newtable
+        GROUP BY
+        Userlevel
+	</select>
+    <select id="showContribution" parameterType="map" resultType="com.mooke.entity.Tools">
+        SELECT
+        dtotal as dtotal,
+        Userlevel as level
+        FROM
+        (
+            SELECT
+            SUM(d_current+d_terminal+d_financing+d_fund+d_insurance) as dtotal,
+                (CASE
+                WHEN SUM(d_current+d_terminal+d_financing+d_fund+d_insurance) >= 1000000 THEN '钻石客户'
+                WHEN SUM(d_current+d_terminal+d_financing+d_fund+d_insurance) &lt;1000000 AND
+                SUM(d_current+d_terminal+d_financing+d_fund+d_insurance) >= 300000 THEN '白金客户'
+                WHEN SUM(d_current+d_terminal+d_financing+d_fund+d_insurance) &lt;300000 THEN '普通客户'
+                END) as Userlevel
+            FROM datelist d
+            LEFT JOIN client c
+            ON d.c_id=c.c_id
+            GROUP BY
+            d.c_id
+        )
+        as newtable
+        GROUP BY
+        Userlevel
+	</select>
+
+
+</mapper>

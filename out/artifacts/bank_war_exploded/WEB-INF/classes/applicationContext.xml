@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:p="http://www.springframework.org/schema/p"
+	xmlns:task="http://www.springframework.org/schema/task" 
+	xmlns:tx="http://www.springframework.org/schema/tx" xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:mvc="http://www.springframework.org/schema/mvc" xmlns:aop="http://www.springframework.org/schema/aop"
+	xmlns:ehcache="http://ehcache-spring-annotations.googlecode.com/svn/schema/ehcache-spring"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans 
+	http://www.springframework.org/schema/beans/spring-beans-3.2.xsd 
+	http://www.springframework.org/schema/tx 
+	http://www.springframework.org/schema/tx/spring-tx-3.2.xsd
+	http://www.springframework.org/schema/context
+    http://www.springframework.org/schema/context/spring-context-3.2.xsd
+    http://www.springframework.org/schema/aop
+    http://www.springframework.org/schema/aop/spring-aop-3.2.xsd 
+	http://www.springframework.org/schema/mvc
+    http://www.springframework.org/schema/mvc/spring-mvc-3.2.xsd
+    http://ehcache-spring-annotations.googlecode.com/svn/schema/ehcache-spring
+    http://ehcache-spring-annotations.googlecode.com/svn/schema/ehcache-spring/ehcache-spring-1.2.xsd
+    http://www.springframework.org/schema/task  http://www.springframework.org/schema/task/spring-task-3.1.xsd  
+    ">
+    
+    <context:component-scan base-package="com.mooke" />
+    <!-- 启动spring的注解 -->
+	<context:annotation-config />
+	<!-- 指定connector连接信息的属性文件的位置-->
+	<context:property-placeholder location="classpath:jdbc.properties" />
+    
+	<bean id="dataSource" class="com.alibaba.druid.pool.DruidDataSource"
+		init-method="init" destroy-method="close">
+		<property name="driverClassName" value="${master.jdbc.driverClassName}" />
+		<property name="url" value="${master.jdbc.url}" />
+		<property name="username" value="${master.jdbc.username}" />
+		<property name="password" value="${master.jdbc.password}" />
+		<property name="initialSize" value="${master.jdbc.initialSize}" />
+		<property name="maxActive" value="${master.jdbc.maxActive}" />
+		<property name="filters" value="stat" />
+		<property name="maxWait" value="60000" />
+		<property name="minIdle" value="10" />
+		<property name="timeBetweenEvictionRunsMillis" value="3000" />
+		<property name="minEvictableIdleTimeMillis" value="300000" />
+		<property name="validationQuery" value="SELECT 'x'" />
+		<property name="testWhileIdle" value="true" />
+		<property name="testOnBorrow" value="false" />
+		<property name="testOnReturn" value="false" />
+		<property name="poolPreparedStatements" value="false" />
+		<property name="maxPoolPreparedStatementPerConnectionSize" value="100" />
+		<property name="removeAbandoned" value="true" />
+		<property name="removeAbandonedTimeout" value="18000" />
+		<property name="logAbandoned" value="true" />
+	</bean>
+
+
+
+	<!-- 配置SqlSessionFactoryBean -->
+	<bean id="sqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+		<property name="dataSource" ref="dataSource"/>
+		<property name="typeAliasesPackage" value="com.mooke.entity" />
+		<property name="mapperLocations">
+			<list>
+				<value>classpath*:com/mooke/mapper/*-Mapper.xml</value>
+			</list>
+		</property>
+	</bean>
+	
+	<!-- 使用SqlSession形式 -->
+	<bean id="sqlSession" class="org.mybatis.spring.SqlSessionTemplate">
+		<constructor-arg ref="sqlSessionFactory" />
+	</bean>
+	
+	<!-- 配置Spring Template -->
+	<bean id="jdbcTemplate" class="org.springframework.jdbc.core.JdbcTemplate">
+		<property name="dataSource" ref="dataSource"/>
+		<property name="nativeJdbcExtractor" ref="nativeJdbcExtractor"/>
+	</bean>
+	
+	<bean id="nativeJdbcExtractor" class="org.springframework.jdbc.support.nativejdbc.CommonsDbcpNativeJdbcExtractor" lazy-init="true" />
+	<bean id="defaultLobHandler" class="org.springframework.jdbc.support.lob.DefaultLobHandler" lazy-init="true" />
+		
+	<!-- 数据源事务管理 -->
+	<bean id="txManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+		<property name="dataSource" ref="dataSource" />
+	</bean>
+
+	<!-- 注意：CommonsMultipartResolver的id是固定不变的，一定是multipartResolver，不可修改 -->
+	<bean id="multipartResolver" class="org.springframework.web.multipart.commons.CommonsMultipartResolver">
+		<!-- 如果上传后出现文件名中文乱码可以使用该属性解决 -->
+		<property name="defaultEncoding" value="utf-8"/>
+		<!-- 单位是字节，不设置默认不限制总的上传文件大小，这里设置总的上传文件大小不超过1M（1*1024*1024） -->
+		<property name="maxUploadSize" value="-1"/>
+	</bean>
+
+	<!-- 设置一个简单的异常解析器，当文件上传超过大小限制时跳转 -->
+	<bean class="org.springframework.web.servlet.handler.SimpleMappingExceptionResolver">
+		<property name="defaultErrorView" value="/index"/>
+	</bean>
+
+	<!-- 事务处理 -->
+	<tx:annotation-driven proxy-target-class="true" transaction-manager="txManager" />
+
+	<bean
+		class="org.springframework.web.servlet.mvc.annotation.AnnotationMethodHandlerAdapter">
+		<property name="messageConverters">
+			<list>
+				<ref bean="mappingJacksonHttpMessageConverter" />
+			</list>
+		</property>
+	</bean>
+	
+	<bean id="mappingJacksonHttpMessageConverter" class="org.springframework.http.converter.json.MappingJacksonHttpMessageConverter" />
+	<!--对模型视图名称的解析，即在模型视图名称添加前后缀 -->
+	<bean id="viewResolver" class="org.springframework.web.servlet.view.InternalResourceViewResolver">
+		<property name="prefix" value="/WEB-INF/views/" />
+		<property name="suffix" value=".jsp" />
+		<property name="viewClass" value="org.springframework.web.servlet.view.JstlView" />
+	</bean>
+	
+	<bean name="jsonView"
+		class="org.springframework.web.servlet.view.json.MappingJacksonJsonView">
+		<property name="encoding">
+			<value type="org.codehaus.jackson.JsonEncoding">UTF8</value>
+		</property>
+		<property name="contentType" value="text/html;charset=UTF-8"/>
+	</bean>
+	<!--   启动spring MVC 注解方式 -->
+	<bean class="org.springframework.web.servlet.mvc.annotation.AnnotationMethodHandlerAdapter" />
+
+	<!-- 解析器注册 -->
+	<bean class="org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter">
+		<property name="messageConverters">
+			<list>
+				<ref bean="stringHttpMessageConverter"/>
+			</list>
+		</property>
+	</bean>
+	<!-- String类型解析器，允许直接返回String类型的消息 -->
+	<bean id="stringHttpMessageConverter" class="org.springframework.http.converter.StringHttpMessageConverter"/>
+
+
+
+</beans>

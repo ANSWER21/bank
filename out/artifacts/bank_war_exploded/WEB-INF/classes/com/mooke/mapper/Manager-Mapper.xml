@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+        <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+                "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="ManagerMapper">
+    <select id="queryListByPage" parameterType="map" resultType="com.mooke.entity.Tools">
+        SELECT
+            c_id as cid,
+            c_name as cname,
+            c_sex as  csex,
+            c_age as  cage,
+            c_IDcard as  cIDcard,
+            c_phone as  cphone,
+            c_occupation as  coccupation,
+            c_risk as  crisk,
+            c_IDnumber as cIDnumber ,
+            m_id as  mid
+        FROM client
+        where m_id =#{mid}
+        limit #{curpage},#{perpage}
+	</select>
+    <select id="findByName" parameterType="map" resultType="com.mooke.entity.Tools">
+        SELECT
+            c_id as cid,
+            c_name as cname,
+            c_sex as  csex,
+            c_age as  cage,
+            c_IDcard as  cIDcard,
+            c_phone as  cphone,
+            c_occupation as  coccupation,
+            c_risk as  crisk,
+            c_IDnumber as cIDnumber ,
+            m_id as  mid
+        FROM client
+        where
+        c_id = #{findByName}
+        and
+         m_id =#{mid}
+	</select>
+
+    <select id="queryTotalCount" parameterType="map" resultType="Integer">
+   select count(*) as totalCount
+		FROM client
+		where m_id =#{mid}
+	</select>
+    <select id="follow" parameterType="map" resultType="com.mooke.entity.Tools">
+        SELECT
+            id as id,
+            n_id as nid,
+            f_time as ftime,
+            f_way as fway,
+            m_id as mid,
+            f_result as fresult
+        from  follow
+        where
+        n_id = #{nid}
+	</select>
+    <insert id="addNewFollowed" parameterType="map">
+        insert into follow
+	(
+		n_id,
+		f_time,
+		f_way,
+  		f_result,
+  		m_id
+	)values(
+		#{nid},
+		#{ftime},
+        #{fway},
+		#{fresult},
+		#{mid}
+	)
+    </insert>
+
+    <delete id="deletefollow" parameterType="map" >
+        delete from follow
+        where
+            id = #{id}
+    </delete>
+
+    <select id="showHaveUser" parameterType="map" resultType="com.mooke.entity.Tools">
+        SELECT
+        c.c_id as cid,
+        c.m_id as mid,
+        c.c_name as cname,
+        c.c_phone as cphone,
+        c.c_name as cname,
+        c.c_risk as crisk,
+        SUM(d_current+d_terminal+d_financing+d_fund+d_insurance) as dtotal,
+        (CASE
+        WHEN SUM(d_current+d_terminal+d_financing+d_fund+d_insurance) >= 1000000 THEN '钻石客户'
+        WHEN SUM(d_current+d_terminal+d_financing+d_fund+d_insurance) &lt; 1000000 AND
+        SUM(d_current+d_terminal+d_financing+d_fund+d_insurance) >= 300000 THEN '白金客户'
+        WHEN SUM(d_current+d_terminal+d_financing+d_fund+d_insurance) &lt; 300000 THEN '普通客户'
+        END) as level
+        FROM
+        client c
+        LEFT JOIN datelist d
+        ON c.c_id=d.c_id
+        GROUP BY
+        c.c_id
+        having
+        SUM(d_current+d_terminal+d_financing+d_fund+d_insurance) >100
+        and
+        c.m_id =#{mid}
+	</select>
+    <select id="queryHaveUserTotalCount" parameterType="map" resultType="Integer">
+        				SELECT
+        COUNT(mid)
+            FROM (
+				SELECT
+        c.m_id as mid,
+        SUM(d_current+d_terminal+d_financing+d_fund+d_insurance) as dtotal
+        FROM
+        client c
+        LEFT JOIN datelist d
+        ON c.c_id=d.c_id
+        GROUP BY
+        c.c_id
+        having
+        SUM(d_current+d_terminal+d_financing+d_fund+d_insurance) >100
+        and
+        c.m_id =10002) newtable
+	</select>
+</mapper>
